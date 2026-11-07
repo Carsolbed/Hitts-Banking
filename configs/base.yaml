@@ -1,0 +1,56 @@
+# Configuración común a todos los entornos. Los archivos <env>.yaml sobrescriben estas claves.
+project:
+  name: riskfraud
+  owner: gerencia-analitica
+
+catalog:
+  bronze_schema: bronze
+  silver_schema: silver
+  gold_schema: gold
+  features_schema: features
+
+sources:
+  core_bancario:
+    type: oracle
+    mode: batch_incremental
+    watermark_column: fecha_actualizacion
+  tarjetas:
+    type: sqlserver
+    mode: batch_incremental
+    watermark_column: fecha_corte
+  transacciones:
+    type: eventhubs
+    mode: streaming
+    topic: tx-autorizaciones
+    partition_key: cliente_id
+  centrales_riesgo:
+    type: sftp_file
+    mode: batch_mensual
+
+models:
+  risk_score:
+    registry_name: risk_score
+    target: mora_90_12m
+    observation_unit: cliente_mes
+    algorithm: lightgbm
+    baseline: scorecard_woe
+    monotone_constraints_file: configs/features.yaml
+    validation: out_of_time
+    train_window_months: 24
+    oot_window_months: 6
+    retrain_schedule: quarterly
+  tx_anomaly:
+    registry_name: tx_anomaly
+    target: fraude_confirmado
+    observation_unit: transaccion
+    components: [lightgbm_supervised, isolation_forest]
+    negative_sampling_rate: 0.05
+    validation: out_of_time_rolling
+    retrain_schedule: monthly
+    latency_budget_ms: 100
+
+mlflow:
+  experiment_root: /Shared/riskfraud
+  aliases: [challenger, shadow, champion]
+
+random_seed: 42

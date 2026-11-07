@@ -1,0 +1,19 @@
+env: stg
+catalog:
+  name: riskfraud_stg
+data:
+  use_masked_data: true
+  sample_fraction: 0.30
+compute:
+  job_cluster:
+    node_type: Standard_D8ds_v5
+    min_workers: 2
+    max_workers: 6
+    spot: true
+  auto_terminate_minutes: 20
+serving:
+  enabled: true
+  min_replicas: 0             # escala a cero fuera de pruebas
+  max_replicas: 2
+schedules:
+  paused: false

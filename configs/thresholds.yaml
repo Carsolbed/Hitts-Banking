@@ -1,0 +1,27 @@
+# Umbrales de decisión. Se versionan aparte del modelo: el negocio puede ajustarlos sin reentrenar.
+risk_score:
+  bands:            # PD 12m → banda
+    A: [0.00, 0.02]
+    B: [0.02, 0.05]
+    C: [0.05, 0.10]
+    D: [0.10, 0.20]
+    E: [0.20, 1.00]
+  event_triggers:
+    primer_atraso_dias: 1
+    caida_nomina_pct: 0.5
+    util_cupo_max: 0.90
+
+tx_anomaly:
+  cost_matrix_cop:
+    false_negative: amount          # pérdida = monto de la transacción
+    false_positive_review: 15000
+    false_positive_friction: 25000
+  combiner_weights:
+    supervised: 0.7
+    unsupervised: 0.3
+  actions:          # score_final → acción sugerida
+    aprobar: [0.00, 0.40]
+    step_up_otp: [0.40, 0.70]
+    revisar: [0.70, 0.90]
+    bloquear_preventivo: [0.90, 1.00]
+  analyst_capacity_per_day: 2000

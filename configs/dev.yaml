@@ -1,0 +1,17 @@
+env: dev
+catalog:
+  name: riskfraud_dev
+data:
+  use_masked_data: true        # nunca datos personales reales en dev
+  sample_fraction: 0.05
+compute:
+  job_cluster:
+    node_type: Standard_D4ds_v5
+    min_workers: 1
+    max_workers: 4
+    spot: true
+  auto_terminate_minutes: 20
+serving:
+  enabled: false
+schedules:
+  paused: true

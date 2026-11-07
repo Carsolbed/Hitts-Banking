@@ -1,0 +1,28 @@
+env: prod
+catalog:
+  name: riskfraud_prod
+data:
+  use_masked_data: false
+  sample_fraction: 1.0
+compute:
+  job_cluster:
+    node_type: Standard_E8ds_v5
+    min_workers: 2
+    max_workers: 8
+    spot: false               # scoring productivo sin interrupciones
+  training_cluster:
+    spot: true                # entrenamiento tolera interrupciones
+  streaming_cluster:
+    node_type: Standard_D8ds_v5
+    workers: 2
+serving:
+  enabled: true
+  endpoint: tx-anomaly
+  min_replicas: 2
+  max_replicas: 6
+  fallback: rules_engine
+schedules:
+  paused: false
+  risk_score_batch: "0 0 3 1 * ?"      # día 1 de cada mes, 3 a.m.
+  risk_score_events: "0 0 4 * * ?"     # diario, 4 a.m.
+  monitoring: "0 0 6 * * ?"            # diario, 6 a.m.

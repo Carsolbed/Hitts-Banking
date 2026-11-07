@@ -1,0 +1,92 @@
+# Definición declarativa de variables. Versionada en Git; el FeatureBuilder la interpreta.
+# monotone: +1 = a mayor valor, mayor riesgo; -1 = a mayor valor, menor riesgo; 0 = libre.
+
+risk_score:
+  entity: cliente_id
+  timestamp: fecha_observacion
+  features:
+    - name: max_dias_mora_3m
+      family: pago
+      source: silver.saldos_productos
+      agg: max(dias_mora) over 3 months
+      monotone: 1
+    - name: max_dias_mora_12m
+      family: pago
+      agg: max(dias_mora) over 12 months
+      monotone: 1
+    - name: pct_pago_vs_facturado_3m
+      family: pago
+      agg: sum(pago) / sum(facturado) over 3 months
+      monotone: -1
+    - name: util_cupo_actual
+      family: utilizacion
+      agg: saldo / cupo at fecha_observacion
+      monotone: 1
+    - name: tendencia_util_3m
+      family: utilizacion
+      agg: slope(util_cupo) over 3 months
+      monotone: 1
+    - name: n_avances_efectivo_3m
+      family: utilizacion
+      monotone: 1
+    - name: estabilidad_nomina_6m
+      family: ingresos
+      agg: coef_variacion(abono_nomina) over 6 months
+      monotone: 1
+    - name: ratio_gasto_ingreso_3m
+      family: ingresos
+      monotone: 1
+    - name: deuda_total_sector
+      family: endeudamiento_externo
+      source: silver.centrales_riesgo
+      monotone: 1
+    - name: n_consultas_centrales_6m
+      family: endeudamiento_externo
+      monotone: 1
+    - name: antiguedad_meses
+      family: relacion
+      monotone: -1
+    - name: n_productos_activos
+      family: relacion
+      monotone: 0
+    - name: n_alertas_anomalia_3m
+      family: senal_modelo_b
+      source: gold.alertas_fraude
+      monotone: 1
+
+tx_anomaly:
+  entity: cliente_id
+  timestamp: fecha_hora_tx
+  online: true
+  features:
+    - name: ratio_monto_mediana_90d
+      family: desviacion_perfil
+    - name: zscore_hora_tx
+      family: desviacion_perfil
+    - name: es_comercio_nuevo
+      family: desviacion_perfil
+    - name: es_pais_nuevo
+      family: desviacion_perfil
+    - name: es_dispositivo_nuevo
+      family: desviacion_perfil
+    - name: n_tx_1h
+      family: velocidad
+      window: 1h
+    - name: n_tx_24h
+      family: velocidad
+      window: 24h
+    - name: monto_acum_1h
+      family: velocidad
+      window: 1h
+    - name: n_comercios_distintos_24h
+      family: velocidad
+      window: 24h
+    - name: mcc
+      family: contexto
+    - name: tasa_fraude_comercio_90d
+      family: contexto
+    - name: tarjeta_presente
+      family: contexto
+    - name: banda_riesgo_cliente
+      family: senal_modelo_a
+      source: gold.scores_riesgo

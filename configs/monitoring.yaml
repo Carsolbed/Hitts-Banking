@@ -1,0 +1,43 @@
+drift:
+  method: psi
+  bins: 10
+  warn: 0.10
+  action: 0.25
+  top_features_to_track: 20
+  segments: [producto, region, tipo_ingreso]
+
+data_quality:
+  max_null_pct: 0.05
+  max_volume_change_pct: 0.30
+  freshness_hours:
+    transacciones: 1
+    core_bancario: 26
+    centrales_riesgo: 744
+
+performance:
+  risk_score:
+    primary: gini
+    min_gini: 0.50
+    max_gini_drop_pts: 5
+    early_proxy: mora_30_3m
+  tx_anomaly:
+    primary: recall_value_at_capacity
+    max_recall_drop_pct: 10
+    max_fp_per_1000: 3
+    early_proxy: analyst_confirmation
+
+service:
+  latency_p95_ms: 100
+  error_rate_max: 0.01
+  availability_min: 0.999
+
+seasonality_calendar:   # evita falsas alarmas en fechas conocidas
+  - quincenas
+  - prima_junio
+  - prima_diciembre
+  - black_friday
+  - dia_sin_iva
+
+alerts:
+  channels: [teams, email]
+  create_ticket: true
