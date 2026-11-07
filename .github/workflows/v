@@ -1,0 +1,35 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-stg:
+    runs-on: ubuntu-latest
+    environment: stg
+    steps:
+      - uses: actions/checkout@v4
+      - name: Desplegar jobs a staging
+        run: databricks bundle deploy -t stg
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_STG }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.SP_CLIENT_ID_STG }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET_STG }}
+      - name: Pruebas de integración en staging
+        run: databricks bundle run integration_tests -t stg
+
+  deploy-prod:
+    needs: deploy-stg
+    runs-on: ubuntu-latest
+    # El entorno 'prod' en GitHub exige aprobación manual (validación de modelos + dueño de negocio)
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Desplegar jobs a producción
+        run: databricks bundle deploy -t prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.SP_CLIENT_ID_PROD }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET_PROD }}
