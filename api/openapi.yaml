@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: riskfraud API
+  version: "1.0.0"
+  description: Acceso controlado a los resultados de los modelos de riesgo y anomalías. Publicada en Azure API Management.
+servers:
+  - url: https://apim-riskfraud-prod.azure-api.net/v1
+security:
+  - oauth2: []
+paths:
+  /risk/clients/{cliente_id}:
+    get:
+      summary: Score de riesgo vigente de un cliente
+      parameters:
+        - { name: cliente_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/RiskScore" } } } }
+        "404": { description: Cliente sin score vigente }
+  /risk/clients/{cliente_id}/history:
+    get:
+      summary: Historial de scores (para tendencia y explicación de cambios)
+      parameters:
+        - { name: cliente_id, in: path, required: true, schema: { type: string } }
+        - { name: months, in: query, schema: { type: integer, default: 12 } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/RiskScore" } } } } }
+  /fraud/score:
+    post:
+      summary: Califica una transacción en línea (p95 < 100 ms)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FraudScoreInput" } } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/FraudScore" } } } }
+  /fraud/alerts:
+    get:
+      summary: Alertas de comportamiento atípico
+      parameters:
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, confirmado_fraude, descartado] } }
+        - { name: cliente_id, in: query, schema: { type: string } }
+      responses:
+        "200": { description: OK }
+  /fraud/alerts/{alert_id}/feedback:
+    post:
+      summary: Etiqueta del analista (alimenta el reentrenamiento y el monitoreo)
+      parameters:
+        - { name: alert_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resultado: { type: string, enum: [fraude, legitimo] }
+                comentario: { type: string }
+      responses:
+        "204": { description: Registrado }
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+          scopes:
+            risk.read: Leer scores de riesgo
+            fraud.score: Calificar transacciones
+            fraud.alerts: Leer y etiquetar alertas
+  schemas:
+    Reason:
+      type: object
+      properties:
+        feature: { type: string }
+        contribution: { type: number }
+        message: { type: string }
+    RiskScore:
+      type: object
+      properties:
+        cliente_id: { type: string }
+        fecha: { type: string, format: date }
+        pd_12m: { type: number }
+        score: { type: integer, minimum: 300, maximum: 950 }
+        banda: { type: string, enum: [A, B, C, D, E] }
+        delta_vs_mes_anterior: { type: integer }
+        razones: { type: array, maxItems: 3, items: { $ref: "#/components/schemas/Reason" } }
+        version_modelo: { type: string }
+    FraudScoreInput:
+      type: object
+      required: [transaccion_id, cliente_id, monto, fecha_hora, mcc, canal, pais, tarjeta_presente]
+      properties:
+        transaccion_id: { type: string }
+        cliente_id: { type: string }
+        monto: { type: number }
+        fecha_hora: { type: string, format: date-time }
+        mcc: { type: string }
+        canal: { type: string }
+        pais: { type: string }
+        dispositivo_id: { type: string }
+        tarjeta_presente: { type: boolean }
+    FraudScore:
+      type: object
+      properties:
+        transaccion_id: { type: string }
+        score: { type: number }
+        accion_sugerida: { type: string, enum: [aprobar, step_up_otp, revisar, bloquear_preventivo] }
+        razones: { type: array, maxItems: 3, items: { $ref: "#/components/schemas/Reason" } }
+        componente_dominante: { type: string }
+        version_modelo: { type: string }
+        latencia_ms: { type: number }
