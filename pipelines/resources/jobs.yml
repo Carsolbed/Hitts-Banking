@@ -1,0 +1,57 @@
+resources:
+  jobs:
+    ingest_daily:
+      name: riskfraud-ingest-daily-${var.env}
+      schedule: { quartz_cron_expression: "0 0 2 * * ?", timezone_id: America/Bogota }
+      tasks:
+        - task_key: bronze_to_silver
+          python_wheel_task: { package_name: riskfraud, entry_point: ingest }
+        - task_key: data_quality
+          depends_on: [{ task_key: bronze_to_silver }]
+          python_wheel_task: { package_name: riskfraud, entry_point: validate }
+        - task_key: build_features
+          depends_on: [{ task_key: data_quality }]
+          python_wheel_task: { package_name: riskfraud, entry_point: features }
+
+    train_risk_score:
+      name: riskfraud-train-risk-score-${var.env}
+      schedule: { quartz_cron_expression: "0 0 1 1 1/3 ?", timezone_id: America/Bogota }   # trimestral
+      tasks:
+        - task_key: train
+          python_wheel_task: { package_name: riskfraud, entry_point: train, parameters: ["risk_score"] }
+
+    train_tx_anomaly:
+      name: riskfraud-train-tx-anomaly-${var.env}
+      schedule: { quartz_cron_expression: "0 0 1 1 * ?", timezone_id: America/Bogota }     # mensual
+      tasks:
+        - task_key: train
+          python_wheel_task: { package_name: riskfraud, entry_point: train, parameters: ["tx_anomaly"] }
+
+    score_risk:
+      name: riskfraud-score-risk-${var.env}
+      tasks:
+        - task_key: score_full
+          python_wheel_task: { package_name: riskfraud, entry_point: score_risk, parameters: ["full"] }
+
+    score_risk_events:
+      name: riskfraud-score-risk-events-${var.env}
+      schedule: { quartz_cron_expression: "0 0 4 * * ?", timezone_id: America/Bogota }
+      tasks:
+        - task_key: score_events
+          python_wheel_task: { package_name: riskfraud, entry_point: score_risk, parameters: ["events"] }
+
+    tx_streaming:
+      name: riskfraud-tx-streaming-${var.env}
+      continuous: { pause_status: UNPAUSED }
+      tasks:
+        - task_key: stream_features
+          python_wheel_task: { package_name: riskfraud, entry_point: stream }
+
+    monitor:
+      name: riskfraud-monitor-${var.env}
+      schedule: { quartz_cron_expression: "0 0 6 * * ?", timezone_id: America/Bogota }
+      tasks:
+        - task_key: monitor_risk
+          python_wheel_task: { package_name: riskfraud, entry_point: monitor, parameters: ["risk_score"] }
+        - task_key: monitor_anomaly
+          python_wheel_task: { package_name: riskfraud, entry_point: monitor, parameters: ["tx_anomaly"] }

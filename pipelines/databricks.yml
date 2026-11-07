@@ -1,0 +1,26 @@
+# Databricks Asset Bundle: despliega jobs como código en dev / stg / prod.
+bundle:
+  name: riskfraud
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      env: dev
+  stg:
+    variables:
+      env: stg
+  prod:
+    mode: production
+    variables:
+      env: prod
+    run_as:
+      service_principal_name: sp-riskfraud-prod
+
+variables:
+  env:
+    description: Entorno de ejecución

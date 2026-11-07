@@ -1,0 +1,44 @@
+[project]
+name = "riskfraud"
+version = "0.1.0"
+description = "Riesgo financiero dinámico y detección de anomalías transaccionales"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "scikit-learn>=1.5",
+  "lightgbm>=4.3",
+  "shap>=0.45",
+  "mlflow>=2.16",
+  "pydantic>=2.7",
+  "fastapi>=0.111",
+  "pyyaml>=6.0",
+  "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+spark = ["pyspark>=3.5", "databricks-feature-engineering>=0.6"]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5", "mypy>=1.10", "pre-commit>=3.7"]
+
+[project.scripts]
+train = "riskfraud.pipelines_entrypoints:train"
+score_risk = "riskfraud.pipelines_entrypoints:score_risk"
+monitor = "riskfraud.pipelines_entrypoints:monitor"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
